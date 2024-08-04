@@ -1,11 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+const scoreElement = document.createElement('div');
+scoreElement.id = 'score';
+document.body.appendChild(scoreElement);
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-
-
-let level = 0;
 
 const gravity = -0.5;
 const player = {
@@ -13,26 +14,48 @@ const player = {
     y: 100,
     width: 50,
     height: 50,
-    color: '#00FF00', // Retro green color
+    color: '#00FF00',
     dx: 0,
     dy: 0,
     speed: 5,
     jumpPower: 10,
     isJumping: false,
-    isGrounded: false
+    isGrounded: false,
+    wasGrounded: false, 
+    startY: 100 
 };
 
-const platforms = [
-    { x: 0, y: 0, width: canvas.width, height: 50, color: '#444' }, // Top platform
-    { x: 100, y: 150, width: 150, height: 20, color: '#666' }, // Middle platform
-    { x: 300, y: 250, width: 200, height: 20, color: '#888' }  // Bottom platform
-];
+const platformWidth = 150;
+const platformHeight = 20;
+const platformGap = 300; 
+const maxPlatforms = 10; 
 
-// Create level display element
-const levelDisplay = document.createElement('div');
-levelDisplay.id = 'levelDisplay';
-levelDisplay.textContent = `Level: ${level}`;
-document.body.appendChild(levelDisplay);
+let platforms = [
+    { x: 0, y: 0, width: canvas.width, height: 50, color: '#444' }, 
+    { x: 100, y: 150, width: 150, height: 20, color: '#666' }, 
+    { x: 300, y: 250, width: 200, height: 20, color: '#888' }  
+];
+let score = 0; 
+
+function generatePlatform(x, y) {
+    return {
+        x,
+        y,
+        width: platformWidth,
+        height: platformHeight,
+        color: '#666' 
+    };
+}
+
+function initializePlatforms() {
+    
+    while (platforms.length < maxPlatforms) {
+        const lastPlatform = platforms[platforms.length - 1];
+        const newY = lastPlatform.y + platformGap;
+        const newX = Math.random() * (canvas.width - platformWidth);
+        platforms.push(generatePlatform(newX, newY));
+    }
+}
 
 function drawPlayer() {
     ctx.fillStyle = player.color;
@@ -46,20 +69,24 @@ function drawPlatforms() {
     });
 }
 
+function updateScore() {
+    scoreElement.textContent = `Score: ${score}`; 
+}
+
 function handlePlayerMovement() {
     if (player.isJumping && player.isGrounded) {
-        player.dy = player.jumpPower; // Jump downwards
+        player.dy = player.jumpPower; 
         player.isGrounded = false;
-        level--; // Decrease level on jump
-        levelDisplay.textContent = `Level: ${level}`;
     }
 
     player.dy += gravity;
     player.y += player.dy;
     player.x += player.dx;
 
-    let wasGrounded = player.isGrounded;
-    player.isGrounded = false; // Reset grounded status
+    player.wasGrounded = player.isGrounded; 
+    player.isGrounded = false; 
+
+    let isOnAnyPlatform = false;
 
     platforms.forEach(platform => {
         if (
@@ -71,20 +98,30 @@ function handlePlayerMovement() {
             player.y = platform.y + platform.height;
             player.dy = 0;
             player.isGrounded = true;
+            isOnAnyPlatform = true;
+
+            
+            score = Math.floor((player.startY - player.y) / 10); 
         }
     });
 
-    // Increase level if the player falls below the top platform
-    if (player.y > platforms[0].y + platforms[0].height && !wasGrounded) {
-        level++; // Increase level when falling down
-        levelDisplay.textContent = `Level: ${level}`;
-    }
-
-    // Ensure player does not fall below the screen
+    
     if (player.y + player.height > canvas.height) {
         player.y = canvas.height - player.height;
         player.dy = 0;
         player.isGrounded = true;
+
+        
+        score = Math.floor((player.startY - player.y) / 10);
+    }
+
+    
+    if (platforms[0].y + platformHeight < 0) {
+        platforms.shift(); 
+        const lastPlatform = platforms[platforms.length - 1];
+        const newY = lastPlatform.y + platformGap;
+        const newX = Math.random() * (canvas.width - platformWidth);
+        platforms.push(generatePlatform(newX, newY));
     }
 }
 
@@ -93,6 +130,7 @@ function update() {
     drawPlatforms();
     handlePlayerMovement();
     drawPlayer();
+    updateScore();
 
     requestAnimationFrame(update);
 }
@@ -118,4 +156,5 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
+initializePlatforms();
 update();

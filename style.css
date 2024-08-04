@@ -1,0 +1,22 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: black;
+    font-family: 'Press Start 2P', cursive;
+    color: white;
+}
+
+canvas {
+    display: block;
+    background-color: #000;
+    image-rendering: pixelated;
+    border: 5px solid #00FF00;
+}
+
+#gameCanvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #000;
+}

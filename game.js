@@ -27,14 +27,19 @@ const player = {
 
 const platformWidth = 150;
 const platformHeight = 20;
-const platformGap = 300; 
-const maxPlatforms = 10; 
+const minVerticalGap = 50; 
+const maxVerticalGap = 100; 
+const minHorizontalGap = 10; 
+const maxHorizontalGap = 50; 
 
-let platforms = [
-    { x: 0, y: 0, width: canvas.width, height: 50, color: '#444' }, 
-    { x: 100, y: 150, width: 150, height: 20, color: '#666' }, 
-    { x: 300, y: 250, width: 200, height: 20, color: '#888' }  
+
+const initialPlatforms = [
+    { x: 0, y: 0, width: canvas.width, height: platformHeight, color: '#444' }, 
+    { x: 100, y: 150, width: platformWidth, height: platformHeight, color: '#666' }, 
+    { x: 300, y: 250, width: platformWidth, height: platformHeight, color: '#888' }  
 ];
+
+let platforms = [...initialPlatforms]; 
 let score = 0; 
 
 function generatePlatform(x, y) {
@@ -47,25 +52,30 @@ function generatePlatform(x, y) {
     };
 }
 
-function initializePlatforms() {
+function addNewPlatform() {
+    const lastPlatform = platforms[platforms.length - 1];
+    const newY = lastPlatform.y + (Math.random() * (maxVerticalGap - minVerticalGap) + minVerticalGap); 
+    const newX = Math.random() * (canvas.width - platformWidth);
+
     
-    while (platforms.length < maxPlatforms) {
-        const lastPlatform = platforms[platforms.length - 1];
-        const newY = lastPlatform.y + platformGap;
-        const newX = Math.random() * (canvas.width - platformWidth);
-        platforms.push(generatePlatform(newX, newY));
+    if (newX + platformWidth > canvas.width) {
+        newX = canvas.width - platformWidth;
+    } else if (newX < 0) {
+        newX = 0;
     }
+
+    platforms.push(generatePlatform(newX, newY));
 }
 
 function drawPlayer() {
     ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    ctx.fillRect(player.x - camera.x, player.y - camera.y, player.width, player.height);
 }
 
 function drawPlatforms() {
     platforms.forEach(platform => {
         ctx.fillStyle = platform.color;
-        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+        ctx.fillRect(platform.x - camera.x, platform.y - camera.y, platform.width, platform.height);
     });
 }
 
@@ -86,8 +96,6 @@ function handlePlayerMovement() {
     player.wasGrounded = player.isGrounded; 
     player.isGrounded = false; 
 
-    let isOnAnyPlatform = false;
-
     platforms.forEach(platform => {
         if (
             player.x < platform.x + platform.width &&
@@ -98,10 +106,9 @@ function handlePlayerMovement() {
             player.y = platform.y + platform.height;
             player.dy = 0;
             player.isGrounded = true;
-            isOnAnyPlatform = true;
 
             
-            score = Math.floor((player.startY - player.y) / 10); 
+            score = Math.floor((player.y - player.startY) / 10); 
         }
     });
 
@@ -112,21 +119,35 @@ function handlePlayerMovement() {
         player.isGrounded = true;
 
         
-        score = Math.floor((player.startY - player.y) / 10);
+        score = Math.floor((player.y - player.startY) / 10);
     }
 
     
-    if (platforms[0].y + platformHeight < 0) {
-        platforms.shift(); 
-        const lastPlatform = platforms[platforms.length - 1];
-        const newY = lastPlatform.y + platformGap;
-        const newX = Math.random() * (canvas.width - platformWidth);
-        platforms.push(generatePlatform(newX, newY));
+    if (platforms.length > 0 && platforms[platforms.length - 1].y < camera.y + canvas.height) {
+        addNewPlatform();
     }
+
+    
+    if (platforms.length > 0 && platforms[0].y < camera.y - platformHeight) {
+        platforms.shift();
+    }
+}
+
+const camera = {
+    x: 0,
+    y: 0
+};
+
+function updateCamera() {
+    
+    camera.y = player.y - canvas.height / 2 + player.height / 2;
+    
+    camera.y = Math.max(camera.y, 0);
 }
 
 function update() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    updateCamera(); 
     drawPlatforms();
     handlePlayerMovement();
     drawPlayer();
@@ -156,5 +177,5 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
-initializePlatforms();
+
 update();
